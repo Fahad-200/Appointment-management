@@ -1,63 +1,502 @@
+/* ============================================================
+   Patient Appointment Dashboard
+   Navy & white theme — layout, components, a11y
+   ============================================================ */
+
+/* ---------- Design tokens ---------- */
+:root {
+    /* Navy scale */
+    --navy-800: #0a2342;
+    --navy-700: #12395f;
+    --navy-600: #1b4f86;
+    --navy-500: #2a6ba8;
+
+    /* Neutrals */
+    --text: #0f1c2e;
+    --muted: #47566b;
+    --placeholder: #64748b;
+
+    /* Status */
+    --danger: #b3261e;
+
+    /* Shape */
+    --radius-sm: 6px;
+
+    /* Focus */
+    --ring: 0 0 0 3px rgba(42, 107, 168, 0.45);
+    --ring-offset: 2px;
+
+    /* Rhythm */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 24px;
+    --space-6: 32px;
+
+    --font: "Inter", "Segoe UI", system-ui, -apple-system, "Helvetica Neue",
+        Arial, sans-serif;
+}
+
+/* ---------- Base ---------- */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+}
 
 body {
-    font-family: Arial, sans-serif;
-    background-color: white;
     margin: 0;
-    padding: 20px;
+    padding: clamp(12px, 3vw, 40px);
+    font-family: var(--font);
+    font-size: 16px;
+    line-height: 1.55;
+    color: var(--text);
+    background-color: #ffffff;
+    background-image: none;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
 }
 
+/* ---------- Layout container ---------- */
 .container {
     max-width: 1100px;
-    margin: auto;
+    margin: 0 auto;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
 }
 
+/* ---------- Headings ---------- */
 h1 {
+    margin: 0 0 var(--space-2);
+    font-size: clamp(1.5rem, 1.1rem + 1.4vw, 2.05rem);
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    line-height: 1.2;
     text-align: center;
-    color: #333;
+    color: var(--navy-800);
 }
 
 h2 {
-    color: #333;
-    margin-top: 25px;
+    margin: var(--space-5) 0 var(--space-3);
+    padding-left: 0;
+    font-size: clamp(1.05rem, 0.98rem + 0.35vw, 1.25rem);
+    font-weight: 650;
+    letter-spacing: -0.005em;
+    color: var(--navy-700);
 }
 
-input, select {
-    padding: 8px;
-    margin: 5px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+h1 + h2 {
+    margin-top: var(--space-5);
 }
 
-button {
-    padding: 8px 12px;
-    margin: 5px;
-    background-color: #eee;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+/* ---------- Form ---------- */
+form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    align-items: flex-end;
+    padding: var(--space-4) 0;
+    background: none;
+    border: none;
+    border-radius: 0;
+}
+
+form input,
+form select {
+    flex: 1 1 190px;
+    min-width: 0;
+}
+
+/* ---------- Inputs & selects ---------- */
+input,
+select {
+    min-height: 44px;
+    padding: 10px 12px;
+    font: inherit;
+    font-size: 0.95rem;
+    color: var(--text);
+    background-color: #f4f7fb;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    box-shadow: none;
+    transition: background-color 0.15s ease, border-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+input[type="date"],
+input[type="time"] {
+    min-width: 150px;
+}
+
+input::placeholder {
+    color: var(--placeholder);
+    opacity: 1;
+}
+
+input:hover,
+select:hover {
+    background-color: #eaf1f9;
+}
+
+input:focus-visible,
+select:focus-visible {
+    outline: none;
+    background-color: #ffffff;
+    box-shadow: var(--ring);
+}
+
+select {
+    padding-right: 34px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' fill='none' stroke='%2347566b' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    appearance: none;
+    -webkit-appearance: none;
     cursor: pointer;
 }
 
-button:hover {
-    background-color: #ddd;
+input:disabled,
+select:disabled {
+    color: var(--placeholder);
+    background-color: #f4f7fb;
+    cursor: not-allowed;
 }
 
+/* ---------- Buttons ---------- */
+button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    min-height: 44px;
+    padding: 10px 18px;
+    font: inherit;
+    font-size: 0.925rem;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--navy-700);
+    background-color: #f4f7fb;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    box-shadow: none;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease,
+        color 0.15s ease, box-shadow 0.15s ease, transform 0.08s ease;
+}
+
+button:hover {
+    color: var(--navy-800);
+    background-color: #e2ebf6;
+}
+
+button:active {
+    transform: translateY(1px);
+}
+
+button:focus-visible {
+    outline: none;
+    box-shadow: var(--ring);
+}
+
+button:disabled {
+    color: var(--placeholder);
+    background-color: #f4f7fb;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Primary action — submit */
+button[type="submit"] {
+    color: #ffffff;
+    background-color: var(--navy-800);
+    border-color: transparent;
+    box-shadow: none;
+}
+
+button[type="submit"]:hover {
+    color: #ffffff;
+    background-color: var(--navy-700);
+    border-color: transparent;
+}
+
+/* Cancel — secondary, inside the form */
+form > button[type="button"] {
+    color: var(--muted);
+    background-color: #f4f7fb;
+    border-color: transparent;
+    box-shadow: none;
+}
+
+form > button[type="button"]:hover {
+    color: var(--navy-800);
+    background-color: #e2ebf6;
+    border-color: transparent;
+}
+
+/* ---------- Table actions (View / Edit / Delete) ---------- */
+td button {
+    min-height: 40px;
+    padding: 8px 13px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin: 2px;
+    background-color: transparent;
+    border-color: transparent;
+    box-shadow: none;
+}
+
+td button:hover {
+    background-color: #e2ebf6;
+}
+
+td > button:nth-of-type(1) {
+    color: var(--navy-600);
+}
+
+td > button:nth-of-type(2) {
+    color: var(--navy-600);
+}
+
+td > button:nth-of-type(3) {
+    color: var(--danger);
+}
+
+td > button:nth-of-type(3):hover {
+    color: #ffffff;
+    background-color: var(--danger);
+}
+
+/* ---------- Table ---------- */
 table {
     width: 100%;
+    margin-top: var(--space-5);
+    background: none;
+    border: none;
+    border-radius: 0;
     border-collapse: collapse;
-    margin-top: 15px;
+    border-spacing: 0;
+    box-shadow: none;
 }
 
-th, td {
-    border: 1px solid #ccc;
-    padding: 10px;
+thead th {
+    padding: 13px 14px;
+    font-size: 0.775rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #ffffff;
+    background-color: var(--navy-800);
+    border-bottom: 1px solid var(--navy-800);
     text-align: left;
+    white-space: nowrap;
 }
 
-th {
-    background-color: #eee;
+tbody td {
+    padding: 13px 14px;
+    color: var(--text);
+    border-bottom: 1px solid #e6ebf2;
+    vertical-align: middle;
 }
 
+tbody tr:nth-child(even) td {
+    background-color: #f7f9fc;
+}
+
+tbody tr:hover td {
+    background-color: #eaf2fa;
+}
+
+tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Empty state row should not inherit zebra striping */
+tbody tr:has(td[colspan]) td {
+    background-color: transparent;
+}
+
+/* Dates & times line up in columns */
+tbody td:nth-child(2),
+tbody td:nth-child(3) {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: var(--muted);
+}
+
+/* Action cell keeps buttons on one row */
+tbody td:last-child {
+    white-space: nowrap;
+}
+
+/* Empty state row */
+tbody td[colspan] {
+    padding: 28px 14px;
+    color: var(--muted);
+    text-align: center;
+    font-style: italic;
+}
+
+tbody tr:hover td[colspan] {
+    background-color: transparent;
+}
+
+/* ---------- Detail view panel ---------- */
+.container > div {
+    margin-top: var(--space-5);
+    padding: var(--space-4) 0;
+    background: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.container > div h2 {
+    margin-top: 0;
+    font-size: 1.1rem;
+}
+
+.container > div p {
+    margin: var(--space-1) 0;
+    font-size: 0.94rem;
+    color: var(--muted);
+}
+
+.container > div p::first-letter {
+    font-weight: 600;
+}
+
+/* ---------- Divider ---------- */
 hr {
-    margin-top: 25px;
-    margin-bottom: 25px;
+    height: 1px;
+    margin: var(--space-6) 0;
+    background: #e6ebf2;
+    border: none;
+}
+
+/* ---------- Search & filter toolbar ---------- */
+.container > input {
+    max-width: 360px;
+    margin-right: var(--space-2);
+    vertical-align: middle;
+}
+
+.container > select {
+    min-width: 170px;
+    margin-right: var(--space-2);
+    vertical-align: middle;
+}
+
+/* ---------- Small screens ---------- */
+@media (max-width: 640px) {
+    .container {
+        padding: 0;
+        border-radius: 0;
+    }
+
+    form {
+        padding: var(--space-3) 0;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--space-3);
+    }
+
+    form input,
+    form select {
+        width: 100%;
+    }
+
+    form button {
+        width: 100%;
+    }
+
+    /* Block-level table + overflow lets the anonymous table box scroll */
+    table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Keep columns intact so the scroll actually has something to scroll */
+    thead th,
+    tbody td {
+        padding: 11px 12px;
+        white-space: nowrap;
+    }
+
+    thead th {
+        position: static;
+    }
+}
+
+/* ---------- Accessibility helpers ---------- */
+a:focus-visible,
+[tabindex]:focus-visible {
+    outline: 3px solid var(--navy-500);
+    outline-offset: var(--ring-offset);
+}
+
+::selection {
+    color: #ffffff;
+    background-color: var(--navy-600);
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ---------- Motion & contrast preferences ---------- */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+@media (prefers-contrast: more) {
+    :root {
+        --muted: #2b3a4d;
+    }
+
+    input,
+    select,
+    button {
+        background-color: #ffffff;
+        box-shadow: inset 0 0 0 1px #6b7a8d;
+    }
+}
+
+@media (forced-colors: active) {
+    button,
+    input,
+    select {
+        border: 1px solid ButtonText;
+        forced-color-adjust: none;
+    }
+
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible {
+        outline: 3px solid Highlight;
+        outline-offset: 2px;
+    }
 }

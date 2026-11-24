@@ -1,37 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import "./App.css"
 
 function App() {
 
-    const [appointments, setAppointments] = useState([
-        {
-            id: 1,
-            name: "Rahul",
-            date: "2026-11-20",
-            time: "10:00",
-            provider: "Dr. Kumar",
-            type: "Consultation",
-            status: "Scheduled"
-        },
-        {
-            id: 2,
-            name: "Priya",
-            date: "2026-11-21",
-            time: "11:30",
-            provider: "Dr. Sharma",
-            type: "Follow-up",
-            status: "Completed"
-        },
-        {
-            id: 3,
-            name: "John",
-            date:"2026-11-22",
-            time:"12:30",
-            provider:"Dr. Manoj",
-            type:"Consultation",
-            status:"Completed"
-
-        }
-    ]);
+    const [appointments, setAppointments] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
 
     const [name, setName] = useState("");
     const [date, setDate] = useState("");
@@ -45,8 +19,28 @@ function App() {
     const [filter, setFilter] = useState("All");
     const [selected, setSelected] = useState(null);
 
+    // Fetch appointments
+    useEffect(() => {
+        const controller = new AbortController();
+
+        fetch("http://localhost:5000/appointments", { signal: controller.signal })
+            .then((res) => {
+                if (!res.ok) throw new Error("Failed to fetch");
+                return res.json();
+            })
+            .then((data) => {
+                setAppointments(data);
+            })
+            .catch((err) => {
+                if (err.name !== "AbortError") setError(err.message);
+            })
+            .finally(() => setLoading(false));
+
+        return () => controller.abort();
+    }, []);
+
     // Add or Update
-    function saveAppointment(e) {
+    async function saveAppointment(e) {
         e.preventDefault();
 
         if (date < new Date().toLocaleDateString('en-CA')) {
@@ -54,27 +48,56 @@ function App() {
             return;
         }
 
-        if (editId === null) {
-            const newAppointment = {
-                id: Date.now(),
-                name, date, time, provider, type, status
-            };
+        try {
+            if (editId === null) {
+                const response = await fetch(
+                    "http://localhost:5000/appointments",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            name, date, time, provider, type, status
+                        })
+                    }
+                );
 
-            setAppointments([...appointments, newAppointment]);
-            alert("Appointment Added");
-        } else {
-            const updated = appointments.map((a) =>
-                a.id === editId
-                    ? { id: editId, name, date, time, provider, type, status }
-                    : a
-            );
+                if (!response.ok) throw new Error("Failed to add");
 
-            setAppointments(updated);
-            alert("Appointment Updated");
-            setEditId(null);
+                const savedAppointment = await response.json();
+
+                setAppointments(prev => [...prev, savedAppointment]);
+                alert("Appointment Added");
+            } else {
+                const response = await fetch(
+                    `http://localhost:5000/appointments/${editId}`,
+                    {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            name, date, time, provider, type, status
+                        })
+                    }
+                );
+
+                if (!response.ok) throw new Error("Failed to update");
+
+                const updatedAppointment = await response.json();
+
+                setAppointments(prev =>
+                    prev.map(a => a.id === editId ? updatedAppointment : a)
+                );
+                alert("Appointment Updated");
+                setEditId(null);
+            }
+
+            clearForm();
+        } catch (err) {
+            alert(err.message);
         }
-
-        clearForm();
     }
 
     // Clear Form
@@ -101,9 +124,20 @@ function App() {
     }
 
     // Delete
-    function deleteAppointment(id) {
+    async function deleteAppointment(id) {
         if (window.confirm("Are you sure you want to delete?")) {
-            setAppointments(appointments.filter((a) => a.id !== id));
+            try {
+                const response = await fetch(
+                    `http://localhost:5000/appointments/${id}`,
+                    { method: "DELETE" }
+                );
+
+                if (!response.ok) throw new Error("Failed to delete");
+
+                setAppointments(prev => prev.filter(a => a.id !== id));
+            } catch (err) {
+                alert(err.message);
+            }
         }
     }
 
@@ -116,6 +150,9 @@ function App() {
     return (
         <div className="container">
              <h1>Appointment Dashboard</h1>
+
+            {loading && <p>Loading appointments…</p>}
+            {error && <p>Error: {error}</p>}
 
             <h2>{editId === null ? "Add Appointment" : "Edit Appointment"}</h2>
 
@@ -177,6 +214,9 @@ function App() {
 
             <h2>Appointment List</h2>
 
+            {!loading && !error && (
+            <>
+
             <input
                 placeholder="Search Patient Name"
                 value={search}
@@ -235,6 +275,9 @@ function App() {
                     )}
                 </tbody>
             </table>
+
+            </>
+            )}
 
             {selected && (
                 <div>
