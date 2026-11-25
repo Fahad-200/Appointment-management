@@ -1,302 +1,250 @@
-import React, { useState, useEffect } from 'react';
-import "./App.css"
+import React, { useMemo, useRef, useState, useEffect } from "react";
+import "./App.css";
 
-function App() {
+import AppHeader from "./components/layout/AppHeader";
+import PageHeader from "./components/layout/PageHeader";
+import NavigationTabs from "./components/layout/NavigationTabs";
 
-    const [appointments, setAppointments] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
+import StatsSection from "./components/dashboard/StatsSection";
+import AppointmentList from "./components/dashboard/AppointmentList";
 
-    const [name, setName] = useState("");
-    const [date, setDate] = useState("");
-    const [time, setTime] = useState("");
-    const [provider, setProvider] = useState("");
-    const [type, setType] = useState("Consultation");
-    const [status, setStatus] = useState("Scheduled");
+import AppointmentForm from "./components/appointments/AppointmentForm";
+import AppointmentDetails from "./components/appointments/AppointmentDetails";
 
-    const [editId, setEditId] = useState(null);
+import Loading from "./components/common/Loading";
+import Toast from "./components/common/Toast";
+import ConfirmDialog from "./components/common/ConfirmDialog";
+
+import useAppointments from "./hooks/useAppointments";
+
+export default function App() {
+    const {
+        appointments,
+        loading,
+        error,
+        addAppointment,
+        updateAppointment,
+        deleteAppointment
+    } = useAppointments();
+
+    const [activeTab, setActiveTab] = useState("list");
+
+    const [selected, setSelected] = useState(null);
+    const [editing, setEditing] = useState(null);
+
     const [search, setSearch] = useState("");
     const [filter, setFilter] = useState("All");
-    const [selected, setSelected] = useState(null);
+    const [sort, setSort] = useState("asc");
 
-    // Fetch appointments
+    const [toast, setToast] = useState({
+        message: "",
+        type: "success"
+    });
+
+    const [deleteTarget, setDeleteTarget] = useState(null);
+
+    // Keep a reference to the auto-dismiss timer so a new toast can cancel the
+    // previous timeout (otherwise an older timer could clear a newer toast),
+    // and so we can clear it when the component unmounts.
+    const toastTimer = useRef(null);
+
     useEffect(() => {
-        const controller = new AbortController();
-
-        fetch("http://localhost:5000/appointments", { signal: controller.signal })
-            .then((res) => {
-                if (!res.ok) throw new Error("Failed to fetch");
-                return res.json();
-            })
-            .then((data) => {
-                setAppointments(data);
-            })
-            .catch((err) => {
-                if (err.name !== "AbortError") setError(err.message);
-            })
-            .finally(() => setLoading(false));
-
-        return () => controller.abort();
+        return () => {
+            if (toastTimer.current) {
+                window.clearTimeout(toastTimer.current);
+            }
+        };
     }, []);
 
-    // Add or Update
-    async function saveAppointment(e) {
-        e.preventDefault();
+    function showToast(message, type = "success") {
+        setToast({ message, type });
 
-        if (date < new Date().toLocaleDateString('en-CA')) {
-            alert("Past dates are not allowed");
-            return;
+        if (toastTimer.current) {
+            window.clearTimeout(toastTimer.current);
         }
+
+        toastTimer.current = window.setTimeout(() => {
+            setToast({ message: "", type: "success" });
+            toastTimer.current = null;
+        }, 3000);
+    }
+
+    function openAddForm() {
+        setEditing(null);
+        setActiveTab("add");
+    }
+
+    function openEditForm(appointment) {
+        setEditing(appointment);
+        setSelected(null);
+        setActiveTab("add");
+    }
+
+    function openDetails(appointment) {
+        setSelected(appointment);
+        setActiveTab("details");
+    }
+
+    function returnToList() {
+        setSelected(null);
+        setEditing(null);
+        setActiveTab("list");
+    }
+
+    function handleTabChange(tab) {
+        if (tab === "add") {
+            openAddForm();
+        } else if (tab === "list") {
+            returnToList();
+        } else if (tab === "details") {
+            setActiveTab("details");
+        }
+    }
+
+    async function handleSave(formData) {
+        try {
+            if (editing) {
+                await updateAppointment(editing.id, formData);
+                showToast("Appointment updated successfully!");
+            } else {
+                await addAppointment(formData);
+                showToast("Appointment added successfully!");
+            }
+
+            returnToList();
+        } catch (err) {
+            showToast(err.message || "Something went wrong", "error");
+        }
+    }
+
+    async function handleDelete() {
+        if (!deleteTarget) return;
 
         try {
-            if (editId === null) {
-                const response = await fetch(
-                    "http://localhost:5000/appointments",
-                    {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
-                            name, date, time, provider, type, status
-                        })
-                    }
-                );
+            await deleteAppointment(deleteTarget.id);
 
-                if (!response.ok) throw new Error("Failed to add");
-
-                const savedAppointment = await response.json();
-
-                setAppointments(prev => [...prev, savedAppointment]);
-                alert("Appointment Added");
-            } else {
-                const response = await fetch(
-                    `http://localhost:5000/appointments/${editId}`,
-                    {
-                        method: "PUT",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
-                            name, date, time, provider, type, status
-                        })
-                    }
-                );
-
-                if (!response.ok) throw new Error("Failed to update");
-
-                const updatedAppointment = await response.json();
-
-                setAppointments(prev =>
-                    prev.map(a => a.id === editId ? updatedAppointment : a)
-                );
-                alert("Appointment Updated");
-                setEditId(null);
+            if (selected && String(selected.id) === String(deleteTarget.id)) {
+                setSelected(null);
             }
 
-            clearForm();
+            setDeleteTarget(null);
+            showToast("Appointment deleted successfully!");
         } catch (err) {
-            alert(err.message);
+            setDeleteTarget(null);
+            showToast(err.message || "Unable to delete", "error");
         }
     }
 
-    // Clear Form
-    function clearForm() {
-        setName("");
-        setDate("");
-        setTime("");
-        setProvider("");
-        setType("Consultation");
-        setStatus("Scheduled");
-        setEditId(null);
-    }
+    const filteredAppointments = useMemo(() => {
+        const searchValue = search.trim().toLowerCase();
 
-    // Edit
-    function editAppointment(a) {
-        setName(a.name);
-        setDate(a.date);
-        setTime(a.time);
-        setProvider(a.provider);
-        setType(a.type);
-        setStatus(a.status);
-        setEditId(a.id);
-        setSelected(null);
-    }
+        return [...appointments]
+            .filter(appointment => {
+                const name = (appointment.name || "").toLowerCase();
+                const provider = (appointment.provider || "").toLowerCase();
 
-    // Delete
-    async function deleteAppointment(id) {
-        if (window.confirm("Are you sure you want to delete?")) {
-            try {
-                const response = await fetch(
-                    `http://localhost:5000/appointments/${id}`,
-                    { method: "DELETE" }
+                return (
+                    name.includes(searchValue) ||
+                    provider.includes(searchValue)
                 );
+            })
+            .filter(
+                appointment => filter === "All" || appointment.status === filter
+            )
+            .sort((a, b) => {
+                const result = a.date.localeCompare(b.date);
 
-                if (!response.ok) throw new Error("Failed to delete");
-
-                setAppointments(prev => prev.filter(a => a.id !== id));
-            } catch (err) {
-                alert(err.message);
-            }
-        }
-    }
-
-    // Search and Filter
-    const filtered = appointments
-        .filter((a) => a.name.toLowerCase().includes(search.toLowerCase()))
-        .filter((a) => filter === "All" || a.status === filter)
-        .sort((a, b) => a.date.localeCompare(b.date));
+                return sort === "asc" ? result : -result;
+            });
+    }, [appointments, search, filter, sort]);
 
     return (
-        <div className="container">
-             <h1>Appointment Dashboard</h1>
+        <>
+            <AppHeader />
 
-            {loading && <p>Loading appointments…</p>}
-            {error && <p>Error: {error}</p>}
+            <main className="main-container">
+                <PageHeader onAdd={openAddForm} />
 
-            <h2>{editId === null ? "Add Appointment" : "Edit Appointment"}</h2>
-
-            <form onSubmit={saveAppointment}>
-
-                <input
-                    placeholder="Patient Name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
+                <NavigationTabs
+                    activeTab={activeTab}
+                    setActiveTab={handleTabChange}
                 />
 
-                <input
-                    type="date"
-                    value={date}
-                    min={new Date().toLocaleDateString('en-CA')}
-                    onChange={(e) => setDate(e.target.value)}
-                    required
-                />
+                <Toast message={toast.message} type={toast.type} />
 
-                <input
-                    type="time"
-                    value={time}
-                    onChange={(e) => setTime(e.target.value)}
-                    required
-                />
+                {loading && <Loading />}
 
-                <input
-                    placeholder="Provider Name"
-                    value={provider}
-                    onChange={(e) => setProvider(e.target.value)}
-                    required
-                />
+                {error && <div className="error-message">{error}</div>}
 
-                <select value={type} onChange={(e) => setType(e.target.value)}>
-                    <option>Consultation</option>
-                    <option>Follow-up</option>
-                </select>
+                {!loading && !error && (
+                    <>
+                        {activeTab === "list" && (
+                            <>
+                                <StatsSection appointments={appointments} />
 
-                <select value={status} onChange={(e) => setStatus(e.target.value)}>
-                    <option>Scheduled</option>
-                    <option>Completed</option>
-                    <option>Cancelled</option>
-                </select>
+                                <AppointmentList
+                                    appointments={filteredAppointments}
+                                    search={search}
+                                    setSearch={setSearch}
+                                    filter={filter}
+                                    setFilter={setFilter}
+                                    sort={sort}
+                                    setSort={setSort}
+                                    onView={openDetails}
+                                    onEdit={openEditForm}
+                                    onDelete={setDeleteTarget}
+                                />
+                            </>
+                        )}
 
-                <button type="submit">
-                    {editId === null ? "Add Appointment" : "Update Appointment"}
-                </button>
+                        {activeTab === "add" && (
+                            <AppointmentForm
+                                appointment={editing}
+                                onSave={handleSave}
+                                onCancel={returnToList}
+                            />
+                        )}
 
-                {editId !== null && (
-                    <button type="button" onClick={clearForm}>
-                        Cancel
-                    </button>
+                        {activeTab === "details" && selected && (
+                            <AppointmentDetails
+                                appointment={
+                                    appointments.find(
+                                        a =>
+                                            String(a.id) ===
+                                            String(selected.id)
+                                    ) || selected
+                                }
+                                onBack={returnToList}
+                                onEdit={openEditForm}
+                            />
+                        )}
+
+                        {activeTab === "details" && !selected && (
+                            <div className="empty-state">
+                                <h3>No appointment selected</h3>
+                                <p>
+                                    Choose an appointment from the listing to
+                                    view its details.
+                                </p>
+                                <button
+                                    className="btn-primary"
+                                    onClick={returnToList}
+                                >
+                                    Back to Listing
+                                </button>
+                            </div>
+                        )}
+                    </>
                 )}
+            </main>
 
-            </form>
-
-            <hr />
-
-            <h2>Appointment List</h2>
-
-            {!loading && !error && (
-            <>
-
-            <input
-                placeholder="Search Patient Name"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+            <ConfirmDialog
+                open={Boolean(deleteTarget)}
+                title="Delete Appointment?"
+                message={`Are you sure you want to delete the appointment for ${deleteTarget?.name}? This action cannot be undone.`}
+                onConfirm={handleDelete}
+                onCancel={() => setDeleteTarget(null)}
             />
-
-            <select value={filter} onChange={(e) => setFilter(e.target.value)}>
-                <option>All</option>
-                <option>Scheduled</option>
-                <option>Completed</option>
-                <option>Cancelled</option>
-            </select>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Date</th>
-                        <th>Time</th>
-                        <th>Provider</th>
-                        <th>Type</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                    {filtered.length === 0 ? (
-                        <tr>
-                            <td colSpan="7">No appointments available</td>
-                        </tr>
-                    ) : (
-                        filtered.map((a) => (
-                            <tr key={a.id}>
-                                <td>{a.name}</td>
-                                <td>{a.date}</td>
-                                <td>{a.time}</td>
-                                <td>{a.provider}</td>
-                                <td>{a.type}</td>
-                                <td>{a.status}</td>
-                                <td>
-                                    <button onClick={() => setSelected(a)}>
-                                        View
-                                    </button>
-
-                                    <button onClick={() => editAppointment(a)}>
-                                        Edit
-                                    </button>
-
-                                    <button onClick={() => deleteAppointment(a.id)}>
-                                        Delete
-                                    </button>
-                                </td>
-                            </tr>
-                        ))
-                    )}
-                </tbody>
-            </table>
-
-            </>
-            )}
-
-            {selected && (
-                <div>
-                    <h2>Appointment Details</h2>
-                    <p>Name: {selected.name}</p>
-                    <p>Date: {selected.date}</p>
-                    <p>Time: {selected.time}</p>
-                    <p>Provider: {selected.provider}</p>
-                    <p>Type: {selected.type}</p>
-                    <p>Status: {selected.status}</p>
-
-                    <button onClick={() => setSelected(null)}>
-                        Back
-                    </button>
-                </div>
-            )}
-
-        </div>
+        </>
     );
 }
-
-export default App;
